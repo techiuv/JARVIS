@@ -35,17 +35,17 @@ pip install -r requirements.txt
 ### Clone the repository:
 
 ```bash
-git clone https://github.com/techiuv/jarvis.git
-cd jarvis
+git clone https://github.com/techiuv/JARVIS.git
+cd JARVIS
 ```
 ### Ensure that the required directories exist:
 
-- `memory/task_memory/notes.txt` - For storing notes.
+- `memory/data/notes.txt` - For storing notes.
 - `data/` - For storing screenshots.
 
 **You may need to create these directories if they do not exist:**
 ```bash\
-mkdir -p memory/task_memory
+mkdir -p memory/data
 mkdir -p data
 ```
 
