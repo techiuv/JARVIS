@@ -1,0 +1,20 @@
+[
+    {
+        "timestamp": "2024-09-17T19:08:01.975484",
+        "date": "2024-09-17",
+        "user_query": "check battery",
+        "ai_response": ""
+    },
+    {
+        "timestamp": "2024-09-17T19:08:38.463624",
+        "date": "2024-09-17",
+        "user_query": "battery kya hai",
+        "ai_response": "Sorry, I did not understand that command."
+    },
+    {
+        "timestamp": "2024-09-17T19:08:48.784582",
+        "date": "2024-09-17",
+        "user_query": "check the battery",
+        "ai_response": "Sorry, I did not understand that command."
+    }
+]

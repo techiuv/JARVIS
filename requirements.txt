@@ -1,0 +1,14 @@
+pyttsx3
+speech_recognition
+re 
+threading
+json
+numpy
+pyjokes
+webbrowser
+wikipedia
+pyautogui
+geocoder
+bs4
+requests
+datetime
