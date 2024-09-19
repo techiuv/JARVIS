@@ -7,14 +7,15 @@ import webbrowser
 import wikipedia
 import geocoder
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
 import json
 import pyttsx3
 import speech_recognition as sr
 import re
 import pyjokes
 import sys
+import logging
+from bs4 import BeautifulSoup
+from datetime import datetime
 
 class Speak:
     def __init__(self):
@@ -120,8 +121,8 @@ class Search:
         self.speaker = speaker
 
     def open_browser(self, query):
-        self.speaker.say('Opening browser for ' + query)
-        url = "https://www.google.com/search?q=" + query
+        self.speaker.say('Opening' + query)
+        url = f"https://www.{query}.com"
         webbrowser.open(url)
 
     def search_wikipedia(self, query):
@@ -263,7 +264,7 @@ class Jarvis:
                 print(f'You said: {command}')
                 return command
             except sr.UnknownValueError:
-                self.speak.say('Sorry, I did not understand the audio.')
+                self.speak.say('Sorry, I did not understand.')
                 return None
             except sr.RequestError:
                 self.speak.say('Sorry, there was an issue with the speech recognition service.')
