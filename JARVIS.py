@@ -5,18 +5,16 @@ import psutil
 import os
 import webbrowser
 import wikipedia
-import geocoder
 import requests
 import json
 import pyttsx3
 import speech_recognition as sr
 import re
 import pyjokes
-import sys
 import logging
 import schedule
-from bs4 import BeautifulSoup
 from datetime import datetime
+
 
 class Speak:
     def __init__(self):
@@ -29,6 +27,7 @@ class Speak:
     def say(self, text):
         self.engine.say(text)
         self.engine.runAndWait()
+
 
 class Task:
     def __init__(self, speaker):
@@ -50,13 +49,10 @@ class Task:
             cpu_usage = psutil.cpu_percent(interval=1)
             memory_info = psutil.virtual_memory()
             disk_info = psutil.disk_usage('/')
-            
-            
-            CPU_THRESHOLD = 90  # 90% CPU usage
-            MEMORY_THRESHOLD = 85  # 85% memory usage
-            DISK_THRESHOLD = 90  # 90% disk usage
+            CPU_THRESHOLD = 90
+            MEMORY_THRESHOLD = 85
+            DISK_THRESHOLD = 90
 
-            # Check if any threshold is crossed
             if cpu_usage > CPU_THRESHOLD:
                 alert_msg = f'Warning: High CPU usage detected at {cpu_usage}%.'
                 print(alert_msg)
@@ -71,8 +67,7 @@ class Task:
                 alert_msg = f'Warning: High disk usage detected at {disk_info.percent}%.'
                 print(alert_msg)
                 self.speaker.say(alert_msg)
-            
-        
+
             return {
                 'cpu': cpu_usage,
                 'memory': memory_info.percent,
@@ -81,41 +76,6 @@ class Task:
 
         except Exception as e:
             logging.error(f'Error monitoring system: {e}')
-           # self.speaker.say('Sorry, I couldn\'t monitor the system.')
-    
-
-    def check_battery(self):
-        try:
-            battery = psutil.sensors_battery()
-            if battery is not None:
-                percent = battery.percent
-                plugged = 'plugged in' if battery.power_plugged else 'not plugged in'
-                battery_status = f'Battery is at {percent}% and is {plugged}.'
-            else:
-                battery_status = 'Battery information not available.'
-            print(battery_status)
-            self.speaker.say(battery_status)
-        except Exception as e:
-            logging.error(f'Error checking battery: {e}')
-            self.speaker.say('Sorry, I couldn\'t retrieve battery information.')
-
-    def check_system_performance(self):
-        try:
-            cpu_usage = psutil.cpu_percent(interval=1)
-            memory_info = psutil.virtual_memory()
-            disk_info = psutil.disk_usage('/')
-
-            performance_status = (
-                f'CPU Usage: {cpu_usage}%\n'
-                f'Memory Usage: {memory_info.percent}%\n'
-                f'Disk Usage: {disk_info.percent}%'
-            )
-            
-            print(performance_status)
-            self.speaker.say(performance_status)
-        except Exception as e:
-            logging.error(f'Error checking system performance: {e}')
-            self.speaker.say('Sorry, I couldn\'t retrieve system performance information.')
 
     def take_notes(self, note):
         try:
@@ -155,84 +115,25 @@ class Task:
         except Exception as e:
             logging.error(f'Error deleting notes: {e}')
             self.speaker.say('Sorry, I couldn\'t delete the notes.')
-    def add_task(self, task_name, task_time):
-        self.tasks[task_name] = task_time
-        print(f"Task '{task_name}' added for {task_time}.")
-        self.schedule_task(task_name, task_time)
 
-    def schedule_task(self, task_name, task_time):
-        schedule.every().day.at(task_time).do(self.execute_task, task_name)
-
-    def execute_task(self, task_name):
-        print(f"Executing Task: {task_name}")
-        # Add actual task execution logic here
-
-    def task_scheduler(self):
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-
-    # Reminders
-    def add_reminder(self, reminder, time_to_remind):
-        self.reminders.append({'reminder': reminder, 'time': time_to_remind})
-        self.save_reminders()
-        print(f"Reminder '{reminder}' set for {time_to_remind}.")
-
-    def check_reminders(self):
-        current_time = datetime.now().strftime("%H:%M")
-        for reminder in self.reminders:
-            if reminder['time'] == current_time:
-                print(f"Reminder: {reminder['reminder']}")
-
-    def load_reminders(self):
-        if os.path.exists('reminders.json'):
-            with open('reminders.json', 'r') as f:
-                self.reminders = json.load(f)
-
-    def save_reminders(self):
-        with open('reminders.json', 'w') as f:
-            json.dump(self.reminders, f)
-
-    def reminder_checker(self):
-        while True:
-            self.check_reminders()
-            time.sleep(60)
-    def extract_task_name(self, command):
-        match = re.search(r'add task (.+)', command)
-        return match.group(1) if match else "Unnamed Task"
-
-    def extract_task_time(self, command):
-        match = re.search(r'at (\d{2}:\d{2})', command)
-        return match.group(1) if match else "00:00"
-
-    def extract_reminder(self, command):
-        match = re.search(r'remind me to (.+)', command)
-        return match.group(1) if match else "No Reminder"
-
-    def extract_reminder_time(self, command):
-        match = re.search(r'at (\d{2}:\d{2})', command)
-        return match.group(1) if match else "00:00"
-
- 
 
 class Search:
     def __init__(self, speaker):
         self.speaker = speaker
-        self.wiki_cache = {}  
+        self.wiki_cache = {}
 
     def open_browser(self, query):
-        self.speaker.say('Opening' + query)
+        self.speaker.say('Opening ' + query)
         url = f"https://www.{query}.com"
         webbrowser.open(url)
 
     def search_wikipedia(self, query):
         try:
-            # Check if query is already in cache
             if query in self.wiki_cache:
                 result = self.wiki_cache[query]
             else:
                 result = wikipedia.summary(query, sentences=2)
-                self.wiki_cache[query] = result  # Cache the result
+                self.wiki_cache[query] = result
 
             print('According to Wikipedia, ' + result)
             self.speaker.say('According to Wikipedia, ' + result)
@@ -252,75 +153,48 @@ class Search:
         url = "https://www.google.com/search?q=" + query
         webbrowser.open(url)
 
-    def get_location(self):
-        try:
-            loc = geocoder.ip('me')
-            location_info = f'Your location is {loc.city}, {loc.state}, {loc.country}'
-            self.speaker.say(location_info)
-            print(location_info)
-        except Exception as e:
-            logging.error(f'Error retrieving location: {e}')
-            self.speaker.say('Sorry, I couldn\'t retrieve your location. ' + str(e))
-
-    def search_weather(self, query):
-        try:
-            search_url = f"https://www.weather.com/en-IN/search/{query}"
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(search_url, headers=headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            weather_section = soup.find('div', class_='CurrentConditions--primary--2SVPh')
-            if weather_section:
-                temp = weather_section.find('span', class_='CurrentConditions--tempValue--3a50n').text
-                desc = weather_section.find('div', class_='CurrentConditions--phraseValue--2xXSr').text
-                weather_info = f'The weather in {query} is currently {desc} with a temperature of {temp}.'
-                self.speaker.say(weather_info)
-                print(weather_info)
-            else:
-                self.speaker.say('Weather information not found.')
-                print('Weather information not found.')
-        except Exception as e:
-            logging.error(f'Error retrieving weather information: {e}')
-            self.speaker.say('Sorry, I couldn\'t retrieve the weather information. ' + str(e))
-
-    def search_news(self, query):
-        try:
-            search_url = f"https://news.google.com/search?q={query}"
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(search_url, headers=headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            headlines = soup.find_all('article', limit=5)
-            news_list = []
-            for article in headlines:
-                headline = article.find('a', class_='DY5T1d').text
-                news_list.append(headline)
-            
-            if news_list:
-                news_info = 'Top news headlines: ' + ', '.join(news_list)
-                self.speaker.say(news_info)
-                print(news_info)
-            else:
-                self.speaker.say('No news found.')
-                print('No news found.')
-        except Exception as e:
-            logging.error(f'Error retrieving news: {e}')
-            self.speaker.say('Sorry, I couldn\'t retrieve the news. ' + str(e))
 
 class Jarvis:
     def __init__(self):
         self.responses_file = 'memory/response/response.json'
-        self.reminders_file = 'memory/data/Reminders.json
-        os.makedirs(os.path.dirname(self.responses_file), exist_ok=True)  # Ensure directory exists
-        os.makedirs(os.path.dirname(self.reminders_file), exist_ok=True)  
+        self.reminders_file = 'memory/data/Reminders.json'
+        os.makedirs(os.path.dirname(self.responses_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.reminders_file), exist_ok=True)
         self.speak = Speak()
         self.recognizer = sr.Recognizer()
-        self.sleep_mode = False
         self.search = Search(self.speak)
         self.automation = Task(self.speak)
         self.tasks = {}
         self.reminders = []
         self.load_reminders()
+        self.reminder_lock = threading.Lock()
+
+    def load_reminders(self):
+        if os.path.exists(self.reminders_file):
+            with open(self.reminders_file, 'r') as f:
+                self.reminders = json.load(f)
+
+    def save_reminders(self):
+        with open(self.reminders_file, 'w') as f:
+            json.dump(self.reminders, f)
+
+    def task_scheduler(self):
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+    def reminder_checker(self):
+        while True:
+            self.check_reminders()
+            time.sleep(60)
+
+    def check_reminders(self):
+        current_time = datetime.now().strftime("%H:%M")
+        with self.reminder_lock:
+            for reminder in self.reminders:
+                if reminder['time'] == current_time:
+                    print(f"Reminder: {reminder['reminder']}")
+                    self.speak.say(f"Reminder: {reminder['reminder']}")
 
     def greet(self):
         now = datetime.now()
@@ -331,15 +205,10 @@ class Jarvis:
         else:
             self.speak.say('Good Evening! sir')
 
-    def tell_jokes(self):
-        joke = pyjokes.get_joke()
-        print(joke)
-        self.speak.say(joke)
-
     def listen(self):
         with sr.Microphone() as source:
             print('Listening...')
-            self.recognizer.adjust_for_ambient_noise(source)
+            self.recognizer.adjust_for_ambient_noise(source, duration=1)
             audio = self.recognizer.listen(source)
 
             try:
@@ -367,9 +236,6 @@ class Jarvis:
         elif re.search(r'\bcheck notes?\b', command):
             self.automation.get_notes()
 
-        elif re.search(r'\bbattery\b', command):
-            self.automation.check_battery()
-
         elif re.search(r'\bscreenshot\b', command):
             self.automation.save_screenshot()
 
@@ -391,45 +257,20 @@ class Jarvis:
                 query = search_match.group(1)
                 self.search.search_google(query)
 
-        elif re.search(r'\blocation\b', command):
-            self.search.get_location()
-
-        elif re.search(r'\bweather\b', command):
-            location_match = re.search(r'weather in (.+)', command)
-            if location_match:
-                location = location_match.group(1)
-                self.search.search_weather(location)
-
-        elif re.search(r'\bnews\b', command):
-            topic_match = re.search(r'news about (.+)', command)
-            if topic_match:
-                topic = topic_match.group(1)
-                self.search.search_news(topic)
-
-        elif re.search(r'\bperformance\b', command):
-            self.automation.check_system_performance()
-
-        elif re.search(r'\bjoke\b', command):
-            self.tell_jokes()
-
     def run(self):
-    self.greet()
+        self.greet()
 
-    task_thread = threading.Thread(target=self.task_scheduler)
-    task_thread.start()
+        task_thread = threading.Thread(target=self.task_scheduler)
+        task_thread.start()
 
-    reminder_thread = threading.Thread(target=self.reminder_checker)
-    reminder_thread.start()
+        reminder_thread = threading.Thread(target=self.reminder_checker)
+        reminder_thread.start()
 
-    health_check_thread = threading.Thread(target=self.health_check_periodic)
-    health_check_thread.start()
-
-
-    while not self.sleep_mode:
-        self.automation.monitor_system()  # Check system health
-        command = self.listen()
-        if command:
-            self.process_command(command)
+        while not self.sleep_mode:
+            self.automation.monitor_system()
+            command = self.listen()
+            if command:
+                self.process_command(command)
 
 
 if __name__ == '__main__':
