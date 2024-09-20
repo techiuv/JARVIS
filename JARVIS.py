@@ -14,6 +14,7 @@ import re
 import pyjokes
 import sys
 import logging
+import schedule
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -154,6 +155,65 @@ class Task:
         except Exception as e:
             logging.error(f'Error deleting notes: {e}')
             self.speaker.say('Sorry, I couldn\'t delete the notes.')
+    def add_task(self, task_name, task_time):
+        self.tasks[task_name] = task_time
+        print(f"Task '{task_name}' added for {task_time}.")
+        self.schedule_task(task_name, task_time)
+
+    def schedule_task(self, task_name, task_time):
+        schedule.every().day.at(task_time).do(self.execute_task, task_name)
+
+    def execute_task(self, task_name):
+        print(f"Executing Task: {task_name}")
+        # Add actual task execution logic here
+
+    def task_scheduler(self):
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+    # Reminders
+    def add_reminder(self, reminder, time_to_remind):
+        self.reminders.append({'reminder': reminder, 'time': time_to_remind})
+        self.save_reminders()
+        print(f"Reminder '{reminder}' set for {time_to_remind}.")
+
+    def check_reminders(self):
+        current_time = datetime.now().strftime("%H:%M")
+        for reminder in self.reminders:
+            if reminder['time'] == current_time:
+                print(f"Reminder: {reminder['reminder']}")
+
+    def load_reminders(self):
+        if os.path.exists('reminders.json'):
+            with open('reminders.json', 'r') as f:
+                self.reminders = json.load(f)
+
+    def save_reminders(self):
+        with open('reminders.json', 'w') as f:
+            json.dump(self.reminders, f)
+
+    def reminder_checker(self):
+        while True:
+            self.check_reminders()
+            time.sleep(60)
+    def extract_task_name(self, command):
+        match = re.search(r'add task (.+)', command)
+        return match.group(1) if match else "Unnamed Task"
+
+    def extract_task_time(self, command):
+        match = re.search(r'at (\d{2}:\d{2})', command)
+        return match.group(1) if match else "00:00"
+
+    def extract_reminder(self, command):
+        match = re.search(r'remind me to (.+)', command)
+        return match.group(1) if match else "No Reminder"
+
+    def extract_reminder_time(self, command):
+        match = re.search(r'at (\d{2}:\d{2})', command)
+        return match.group(1) if match else "00:00"
+
+ 
 
 class Search:
     def __init__(self, speaker):
@@ -250,12 +310,17 @@ class Search:
 class Jarvis:
     def __init__(self):
         self.responses_file = 'memory/response/response.json'
+        self.reminders_file = 'memory/data/Reminders.json
         os.makedirs(os.path.dirname(self.responses_file), exist_ok=True)  # Ensure directory exists
+        os.makedirs(os.path.dirname(self.reminders_file), exist_ok=True)  
         self.speak = Speak()
         self.recognizer = sr.Recognizer()
         self.sleep_mode = False
         self.search = Search(self.speak)
         self.automation = Task(self.speak)
+        self.tasks = {}
+        self.reminders = []
+        self.load_reminders()
 
     def greet(self):
         now = datetime.now()
@@ -349,6 +414,17 @@ class Jarvis:
 
     def run(self):
     self.greet()
+
+    task_thread = threading.Thread(target=self.task_scheduler)
+    task_thread.start()
+
+    reminder_thread = threading.Thread(target=self.reminder_checker)
+    reminder_thread.start()
+
+    health_check_thread = threading.Thread(target=self.health_check_periodic)
+    health_check_thread.start()
+
+
     while not self.sleep_mode:
         self.automation.monitor_system()  # Check system health
         command = self.listen()
