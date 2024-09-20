@@ -44,6 +44,45 @@ class Task:
             logging.error(f'Error saving screenshot: {e}')
             self.speaker.say('Sorry, I couldn\'t save the screenshot.')
 
+    def monitor_system(self):
+        try:
+            cpu_usage = psutil.cpu_percent(interval=1)
+            memory_info = psutil.virtual_memory()
+            disk_info = psutil.disk_usage('/')
+            
+            
+            CPU_THRESHOLD = 90  # 90% CPU usage
+            MEMORY_THRESHOLD = 85  # 85% memory usage
+            DISK_THRESHOLD = 90  # 90% disk usage
+
+            # Check if any threshold is crossed
+            if cpu_usage > CPU_THRESHOLD:
+                alert_msg = f'Warning: High CPU usage detected at {cpu_usage}%.'
+                print(alert_msg)
+                self.speaker.say(alert_msg)
+
+            if memory_info.percent > MEMORY_THRESHOLD:
+                alert_msg = f'Warning: High memory usage detected at {memory_info.percent}%.'
+                print(alert_msg)
+                self.speaker.say(alert_msg)
+
+            if disk_info.percent > DISK_THRESHOLD:
+                alert_msg = f'Warning: High disk usage detected at {disk_info.percent}%.'
+                print(alert_msg)
+                self.speaker.say(alert_msg)
+            
+        
+            return {
+                'cpu': cpu_usage,
+                'memory': memory_info.percent,
+                'disk': disk_info.percent
+            }
+
+        except Exception as e:
+            logging.error(f'Error monitoring system: {e}')
+           # self.speaker.say('Sorry, I couldn\'t monitor the system.')
+    
+
     def check_battery(self):
         try:
             battery = psutil.sensors_battery()
@@ -119,7 +158,7 @@ class Task:
 class Search:
     def __init__(self, speaker):
         self.speaker = speaker
-        self.wiki_cache = {}  # Dictionary to cache Wikipedia searches
+        self.wiki_cache = {}  
 
     def open_browser(self, query):
         self.speaker.say('Opening' + query)
@@ -309,11 +348,13 @@ class Jarvis:
             self.tell_jokes()
 
     def run(self):
-        self.greet()
-        while not self.sleep_mode:
-            command = self.listen()
-            if command:
-                self.process_command(command)
+    self.greet()
+    while not self.sleep_mode:
+        self.automation.monitor_system()  # Check system health
+        command = self.listen()
+        if command:
+            self.process_command(command)
+
 
 if __name__ == '__main__':
     Jarvis().run()
