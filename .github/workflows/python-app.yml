@@ -1,0 +1,46 @@
+name: Python App CI
+
+on:
+  push:
+    branches:
+      - main  # Trigger workflow on push to main branch
+  pull_request:
+    branches:
+      - main  # Trigger workflow on pull requests to main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # You can specify a specific Python version if needed
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    # Step 4: Run Linting (Pylint)
+    - name: Run Pylint
+      run: |
+        pip install pylint
+        pylint JARVIS.py  # Adjust to your file path
+
+    # Step 5: Run Unit Tests (if available)
+    - name: Run Unit Tests
+      run: |
+        python -m unittest discover  # Adjust this if you have a specific test structure
+
+    # Step 6: Run the Application (Optional)
+    - name: Run Application
+      run: |
+        python JARVIS.py  # This will run your app after linting and tests, adjust if needed
