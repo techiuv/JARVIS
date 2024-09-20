@@ -13,6 +13,8 @@ import re
 import pyjokes
 import logging
 import schedule
+import geocoder
+from bs4 import BeautifulSoup
 from datetime import datetime
 
 
@@ -152,12 +154,69 @@ class Search:
         self.speaker.say('Opening Google for ' + query)
         url = "https://www.google.com/search?q=" + query
         webbrowser.open(url)
+    def get_location(self):
+        try:
+            loc = geocoder.ip('me')
+            location_info = f'Your location is {loc.city}, {loc.state}, {loc.country}'
+            self.speaker.say(location_info)
+            print(location_info)
+        except Exception as e:
+            self.speaker.say('Sorry, I couldn\'t retrieve your location. ' + str(e))
+            print('Error:', e)
+
+    def search_weather(self, query):
+        try:
+            search_url = f"https://www.weather.com/en-IN/search/{query}"
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(search_url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            weather_section = soup.find('div', class_='CurrentConditions--primary--2SVPh')
+            if weather_section:
+                temp = weather_section.find('span', class_='CurrentConditions--tempValue--3a50n').text
+                desc = weather_section.find('div', class_='CurrentConditions--phraseValue--2xXSr').text
+                weather_info = f'The weather in {query} is currently {desc} with a temperature of {temp}.'
+                self.speaker.say(weather_info)
+                print(weather_info)
+            else:
+                self.speaker.say('Weather information not found.')
+                print('Weather information not found.')
+        except Exception as e:
+            error_message = str(e)
+            self.speaker.say('Sorry, I couldn\'t retrieve the weather information. ' + error_message)
+            print('Error:', error_message)
+
+    def search_news(self, query):
+        try:
+            search_url = f"https://news.google.com/search?q={query}"
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(search_url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            headlines = soup.find_all('article', limit=5)
+            news_list = []
+            for article in headlines:
+                headline = article.find('a', class_='DY5T1d').text
+                news_list.append(headline)
+            
+            if news_list:
+                news_info = 'Top news headlines: ' + ', '.join(news_list)
+                self.speaker.say(news_info)
+                print(news_info)
+            else:
+                self.speaker.say('No news found.')
+                print('No news found.')
+        except Exception as e:
+            error_message = str(e)
+            self.speaker.say('Sorry, I couldn\'t retrieve the news. ' + error_message)
+            print('Error:', error_message)
+
 
 
 class Jarvis:
     def __init__(self):
         self.responses_file = 'memory/response/response.json'
-        self.reminders_file = 'memory/data/Reminders.json'
+        self.reminders_file = 'memory/data/reminders.json'
         os.makedirs(os.path.dirname(self.responses_file), exist_ok=True)
         os.makedirs(os.path.dirname(self.reminders_file), exist_ok=True)
         self.speak = Speak()
@@ -204,6 +263,37 @@ class Jarvis:
             self.speak.say('Good Afternoon! sir')
         else:
             self.speak.say('Good Evening! sir')
+    def tell_jokes(self):
+        joke = pyjokes.get_joke()
+        print(joke)
+        self.speak.say(joke)
+
+    def save_response(self, query, response_text):
+        response_data = {
+            'timestamp': datetime.now().isoformat(),
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'user_query': query,
+            'ai_response': response_text
+        }
+
+        try:
+            # Read existing responses
+            with open(self.responses_file, 'r') as file:
+                responses = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            responses = []
+
+        # Append new response
+        responses.append(response_data)
+
+        try:
+            # Save updated responses
+            with open(self.responses_file, 'w') as file:
+                json.dump(responses, file, indent=4)
+        except IOError as e:
+            print(f'Error writing to file: {e}')
+            self.speak.say('Sorry, I couldn\'t save the response.')
+
 
     def listen(self):
         with sr.Microphone() as source:
