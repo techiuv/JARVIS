@@ -19,13 +19,21 @@ Jarvis is a voice-activated personal assistant built using Python. It can perfor
 
 Ensure you have Python 3.6 or higher installed on your system. You also need to install the following Python packages:
 
-- `pyttsx3` - Text-to-Speech engine
-- `speech_recognition` - Speech recognition library
-- `psutil` - System and process utilities
-- `geocoder` - Geocoding library
-- `pyautogui` - GUI automation library
-- `pyjokes` - Python package for jokes
-
+- Python 3.x
+- Required libraries:
+  - `pyautogui`
+  - `psutil`
+  - `webbrowser`
+  - `wikipedia`
+  - `requests`
+  - `pyttsx3`
+  - `speech_recognition`
+  - `re`
+  - `pyjokes`
+  - `schedule`
+  - `geocoder`
+  - `BeautifulSoup`
+    
 You can install these dependencies using pip:
 
 ```bash
@@ -43,11 +51,6 @@ cd JARVIS
 - `memory/data/notes.txt` - For storing notes.
 - `data/` - For storing screenshots.
 
-**You may need to create these directories if they do not exist:**
-```bash\
-mkdir -p memory/data
-mkdir -p data
-```
 
 ### Running the Application
 To start Jarvis, run the `jarvis.py` script:
