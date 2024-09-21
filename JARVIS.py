@@ -318,55 +318,76 @@ class Jarvis:
                 return None
 
     def process_command(self, command):
-        if re.search(r'\btake notes?\b', command):
-            self.speak.say('What would you like me to note down?')
-            note = self.listen()
-            if note:
-                self.automation.take_notes(note)
+    if re.search(r'\btake notes?\b', command):
+        self.speak.say('What would you like me to note down?')
+        note = self.listen()
+        if note:
+            self.automation.take_notes(note)
+            self.save_response()  
 
-        elif re.search(r'\bdelete notes?\b', command):
-            self.automation.delete_notes()
+    elif re.search(r'\bdelete notes?\b', command):
+        self.automation.delete_notes()
+        self.save_response()  
 
-        elif re.search(r'\bcheck notes?\b', command):
-            self.automation.get_notes()
+    elif re.search(r'\bcheck notes?\b', command):
+        self.automation.get_notes()
+        self.save_response()  
 
-        elif re.search(r'\bscreenshot\b', command):
-            self.automation.save_screenshot()
+    elif re.search(r'\bscreenshot\b', command):
+        self.automation.save_screenshot()
+        self.save_response()  
 
-        elif re.search(r'\blocation\b', command):
-            self.search.get_location()
+    elif re.search(r'\blocation\b', command):
+        self.search.get_location()
+        self.save_response()  
 
-        elif re.search(r'\bweather\b', command):
-            self.search.search_weather()
+    elif re.search(r'\bweather\b', command):
+        self.search.search_weather()
+        self.save_response()  
 
-        elif re.search(r'\bnews\b', command):
-            self.search.search_news()
+    elif re.search(r'\bnews\b', command):
+        self.search.search_news()
+        self.save_response()
+
+    elif re.search(r'\bjoke(.+)\b', command):
+        self.tell_jokes()
+        self.save_response()  
+
+    elif re.search(r'\bopen\b', command):
+        browser_match = re.search(r'open\s(\w+)', command)
+        if browser_match:
+            site = browser_match.group(1)
+            self.search.open_browser(site)
+            self.save_response()  
+
+    elif re.search(r'\bwikipedia\b|\bwhat is\b|\bwikipedia of\b', command):
+        search_match = re.search(r'wikipedia\s(.+)', command)
+        if search_match:
+            query = search_match.group(1)
+            self.search.search_wikipedia(query)
+            self.save_response()  
+
+    elif re.search(r'\bgoogle\b', command):
+        search_match = re.search(r'google\s(.+)', command)
+        if search_match:
+            query = search_match.group(1)
+            self.search.search_google(query)
+            self.save_response()  
+
+    elif re.search(r'\bhi\b|\bhey\b|\bhello\b', command):
+        self.speak.say('Hello sir!')
+        self.save_response()  
+
+    elif re.search(r'\breminder\b|\bremind me\b', command):
+        self.speak.say('What would you like to be reminded about?')
+        reminder = self.listen()
+        if reminder:
+            self.automation.set_reminder(reminder)
+            self.save_response() 
+    else:
+        self.speak.say('Sorry, I didn’t understand that command.')
+        self.save_response()
             
-        elif re.search(r'\bjoke(.+)\b', command):
-            self.tell_jokes()
-
-        elif re.search(r'\bopen\b', command):
-            browser_match = re.search(r'open\s(\w+)', command)
-            if browser_match:
-                site = browser_match.group(1)
-                self.search.open_browser(site)
-
-        elif re.search(r'\bwikipedia\b'|'\bwhat is\b'|'/bwikipedia of\b', command):
-            search_match = re.search(r'wikipedia\s(.+)', command)
-            if search_match:
-                query = search_match.group(1)
-                self.search.search_wikipedia(query)
-
-        elif re.search(r'\bgoogle\b', command):
-            search_match = re.search(r'google\s(.+)', command)
-            if search_match:
-                query = search_match.group(1)
-                self.search.search_google(query)
-                
-        elif re.search(r'\bhi\b'|'\bhey\b',|'\bhello\b', command):
-            self.say('Hello sir!')
-           # save_response()
-
     def run(self):
         self.greet()
 
