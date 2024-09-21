@@ -86,7 +86,7 @@ class Task:
                 f.write('Note: ')
                 f.write(note)
                 f.write('\n')
-            self.speaker.say('Note added successfully.')
+            self.speaker.say('Sir! Note added successfully.')
         except Exception as e:
             logging.error(f'Error taking note: {e}')
             self.speaker.say('Sorry, I couldn\'t save the note.')
@@ -138,7 +138,7 @@ class Search:
                 self.wiki_cache[query] = result
 
             print('According to Wikipedia, ' + result)
-            self.speaker.say('According to Wikipedia, ' + result)
+            self.speaker.say('Sir! According to Wikipedia, ' + result)
         except wikipedia.exceptions.DisambiguationError as e:
             self.speaker.say('The search term is too ambiguous. Please be more specific.')
             logging.error(f'DisambiguationError: {e}')
@@ -154,6 +154,8 @@ class Search:
         self.speaker.say('Opening Google for ' + query)
         url = "https://www.google.com/search?q=" + query
         webbrowser.open(url)
+
+    
     def get_location(self):
         try:
             loc = geocoder.ip('me')
@@ -204,7 +206,7 @@ class Search:
                 self.speaker.say(news_info)
                 print(news_info)
             else:
-                self.speaker.say('No news found.')
+                self.speaker.say('Sorry Sir! No news found.')
                 print('No news found.')
         except Exception as e:
             error_message = str(e)
@@ -263,6 +265,8 @@ class Jarvis:
             self.speak.say('Good Afternoon! sir')
         else:
             self.speak.say('Good Evening! sir')
+
+        
     def tell_jokes(self):
         joke = pyjokes.get_joke()
         print(joke)
@@ -329,13 +333,25 @@ class Jarvis:
         elif re.search(r'\bscreenshot\b', command):
             self.automation.save_screenshot()
 
+        elif re.search(r'\blocation\b', command):
+            self.search.get_location()
+
+        elif re.search(r'\bweather\b', command):
+            self.search.search_weather()
+
+        elif re.search(r'\bnews\b', command):
+            self.search.search_news()
+            
+        elif re.search(r'\bjoke(.+)\b', command):
+            self.tell_jokes()
+
         elif re.search(r'\bopen\b', command):
             browser_match = re.search(r'open\s(\w+)', command)
             if browser_match:
                 site = browser_match.group(1)
                 self.search.open_browser(site)
 
-        elif re.search(r'\bwikipedia\b', command):
+        elif re.search(r'\bwikipedia\b'|'\bwhat is\b'|'/bwikipedia of\b', command):
             search_match = re.search(r'wikipedia\s(.+)', command)
             if search_match:
                 query = search_match.group(1)
@@ -346,6 +362,10 @@ class Jarvis:
             if search_match:
                 query = search_match.group(1)
                 self.search.search_google(query)
+                
+        elif re.search(r'\bhi\b'|'\bhey\b',|'\bhello\b', command):
+            self.say('Hello sir!')
+           # save_response()
 
     def run(self):
         self.greet()
