@@ -215,6 +215,8 @@ class Search:
 
 
 
+
+
 class Jarvis:
     def __init__(self):
         self.responses_file = 'memory/response/response.json'
@@ -266,7 +268,6 @@ class Jarvis:
         else:
             self.speak.say('Good Evening! sir')
 
-        
     def tell_jokes(self):
         joke = pyjokes.get_joke()
         print(joke)
@@ -298,7 +299,6 @@ class Jarvis:
             print(f'Error writing to file: {e}')
             self.speak.say('Sorry, I couldn\'t save the response.')
 
-
     def listen(self):
         with sr.Microphone() as source:
             print('Listening...')
@@ -318,75 +318,75 @@ class Jarvis:
                 return None
 
     def process_command(self, command):
-    if re.search(r'\btake notes?\b', command):
-        self.speak.say('What would you like me to note down?')
-        note = self.listen()
-        if note:
-            self.automation.take_notes(note)
-            self.save_response()  
+        if re.search(r'\btake notes?\b', command):
+            self.speak.say('What would you like me to note down?')
+            note = self.listen()
+            if note:
+                self.automation.take_notes(note)
+                self.save_response(note, 'Note added.')  
 
-    elif re.search(r'\bdelete notes?\b', command):
-        self.automation.delete_notes()
-        self.save_response()  
+        elif re.search(r'\bdelete notes?\b', command):
+            self.automation.delete_notes()
+            self.save_response(command, 'Notes deleted.')  
 
-    elif re.search(r'\bcheck notes?\b', command):
-        self.automation.get_notes()
-        self.save_response()  
+        elif re.search(r'\bcheck notes?\b', command):
+            self.automation.get_notes()
+            self.save_response(command, 'Checked notes.')  
 
-    elif re.search(r'\bscreenshot\b', command):
-        self.automation.save_screenshot()
-        self.save_response()  
+        elif re.search(r'\bscreenshot\b', command):
+            self.automation.save_screenshot()
+            self.save_response(command, 'Screenshot taken.')  
 
-    elif re.search(r'\blocation\b', command):
-        self.search.get_location()
-        self.save_response()  
+        elif re.search(r'\blocation\b', command):
+            self.search.get_location()
+            self.save_response(command, 'Location retrieved.')  
 
-    elif re.search(r'\bweather\b', command):
-        self.search.search_weather()
-        self.save_response()  
+        elif re.search(r'\bweather\b', command):
+            self.search.search_weather()
+            self.save_response(command, 'Weather searched.')  
 
-    elif re.search(r'\bnews\b', command):
-        self.search.search_news()
-        self.save_response()
+        elif re.search(r'\bnews\b', command):
+            self.search.search_news()
+            self.save_response(command, 'News searched.')
 
-    elif re.search(r'\bjoke(.+)\b', command):
-        self.tell_jokes()
-        self.save_response()  
+        elif re.search(r'\bjoke(.+)\b', command):
+            self.tell_jokes()
+            self.save_response(command, 'Joke told.')  
 
-    elif re.search(r'\bopen\b', command):
-        browser_match = re.search(r'open\s(\w+)', command)
-        if browser_match:
-            site = browser_match.group(1)
-            self.search.open_browser(site)
-            self.save_response()  
+        elif re.search(r'\bopen\b', command):
+            browser_match = re.search(r'open\s(\w+)', command)
+            if browser_match:
+                site = browser_match.group(1)
+                self.search.open_browser(site)
+                self.save_response(command, 'Browser opened.')  
 
-    elif re.search(r'\bwikipedia\b|\bwhat is\b|\bwikipedia of\b', command):
-        search_match = re.search(r'wikipedia\s(.+)', command)
-        if search_match:
-            query = search_match.group(1)
-            self.search.search_wikipedia(query)
-            self.save_response()  
+        elif re.search(r'\bwikipedia\b|\bwhat is\b|\bwikipedia of\b', command):
+            search_match = re.search(r'wikipedia\s(.+)', command)
+            if search_match:
+                query = search_match.group(1)
+                self.search.search_wikipedia(query)
+                self.save_response(command, 'Wikipedia searched.')  
 
-    elif re.search(r'\bgoogle\b', command):
-        search_match = re.search(r'google\s(.+)', command)
-        if search_match:
-            query = search_match.group(1)
-            self.search.search_google(query)
-            self.save_response()  
+        elif re.search(r'\bgoogle\b', command):
+            search_match = re.search(r'google\s(.+)', command)
+            if search_match:
+                query = search_match.group(1)
+                self.search.search_google(query)
+                self.save_response(command, 'Google searched.')  
 
-    elif re.search(r'\bhi\b|\bhey\b|\bhello\b', command):
-        self.speak.say('Hello sir!')
-        self.save_response()  
+        elif re.search(r'\bhi\b|\bhey\b|\bhello\b', command):
+            self.speak.say('Hello sir!')
+            self.save_response(command, 'Greeted user.')  
 
-    elif re.search(r'\breminder\b|\bremind me\b', command):
-        self.speak.say('What would you like to be reminded about?')
-        reminder = self.listen()
-        if reminder:
-            self.automation.set_reminder(reminder)
-            self.save_response() 
-    else:
-        self.speak.say('Sorry, I didn’t understand that command.')
-        self.save_response()
+        elif re.search(r'\breminder\b|\bremind me\b', command):
+            self.speak.say('What would you like to be reminded about?')
+            reminder = self.listen()
+            if reminder:
+                self.automation.set_reminder(reminder)
+                self.save_response(command, 'Reminder set.') 
+        else:
+            self.speak.say('Sorry, I didn’t understand that command.')
+            self.save_response(command, 'Command not understood.')
             
     def run(self):
         self.greet()
@@ -397,7 +397,7 @@ class Jarvis:
         reminder_thread = threading.Thread(target=self.reminder_checker)
         reminder_thread.start()
 
-        while not self.sleep_mode:
+        while True:
             self.automation.monitor_system()
             command = self.listen()
             if command:
