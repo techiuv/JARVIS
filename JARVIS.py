@@ -15,6 +15,7 @@ import logging
 import schedule
 import geocoder
 import spacy
+import math
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -218,6 +219,27 @@ class Task:
             if now >= reminder_time:
                 print(f"Reminder: {message}")
                 del self.reminders[reminder_time]
+        
+    def calculate_equation(self, equation: str):
+        try:
+            # Allow only safe functions and operators
+            allowed_functions = {
+                'sin': math.sin,
+                'cos': math.cos,
+                'tan': math.tan,
+                'sqrt': math.sqrt,
+                'log': math.log,
+                'pow': math.pow,
+                'exp': math.exp,
+                'pi': math.pi,
+                'e': math.e
+            }
+            
+            # Evaluate the equation safely using eval with limited globals
+            result = eval(equation, {"__builtins__": None}, allowed_functions)
+            return result
+        except Exception as e:
+            return f"Error calculating equation: {str(e)}"
     
 
 
@@ -576,6 +598,13 @@ class Jarvis:
             if time_in_minutes and message:
                 task_instance.set_reminder(message, time_in_minutes)
                 return f"Reminder set: '{message}' in {time_in_minutes} minutes."
+   
+    elif any(verb in verbs for verb in ["calculate", "solve"]):        
+        equation = next((ent for ent, label in entities if label == "QUANTITY"), None)
+        if equation:            
+            result = task_instance.calculate_equation(equation)
+            return f"The result of {equation} is {result}."
+
 
 
     else:
