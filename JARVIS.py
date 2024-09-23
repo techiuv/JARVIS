@@ -14,6 +14,7 @@ import pyjokes
 import logging
 import schedule
 import geocoder
+import spacy
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -231,6 +232,8 @@ class Jarvis:
         self.reminders = []
         self.load_reminders()
         self.reminder_lock = threading.Lock()
+        self.nlp = spacy.load('en_core_web_sm')
+
 
     def load_reminders(self):
         if os.path.exists(self.reminders_file):
@@ -318,76 +321,109 @@ class Jarvis:
                 return None
 
     def process_command(self, command):
-        if re.search(r'\btake notes?\b', command):
-            self.speak.say('What would you like me to note down?')
-            note = self.listen()
-            if note:
-                self.automation.take_notes(note)
-                self.save_response(note, 'Note added.')  
+    # Process the command using spaCy
+    doc = self.nlp(command)
+    
+    # Extract entities, verbs, nouns, and subjects
+    entities = [(ent.text, ent.label_) for ent in doc.ents]
+    verbs = [token.lemma_ for token in doc if token.pos_ == 'VERB']
+    nouns = [token.text for token in doc if token.pos_ == 'NOUN']
+    
+    print(f"Extracted Entities: {entities}")
+    print(f"Extracted Verbs: {verbs}")
+    print(f"Extracted Nouns: {nouns}")
+    
+    # Use dependency parsing to understand sentence structure
+    for token in doc:
+        print(f"Token: {token.text}, Dep: {token.dep_}, Head: {token.head.text}")
+    
+    # Map verbs to user actions with more NLP
+    def match_intent(verb_list, noun_list):
+        # Check for combinations of verbs and nouns to match actions
+        if 'take' in verb_list and 'note' in noun_list:
+            return 'take_note'
+        if 'delete' in verb_list and 'note' in noun_list:
+            return 'delete_note'
+        if 'get' in verb_list and 'location' in noun_list:
+            return 'get_location'
+        if 'take' in verb_list and 'screenshot' in noun_list:
+            return 'take_screenshot'
+        if 'search' in verb_list and 'weather' in noun_list:
+            return 'search_weather'
+        if 'tell' in verb_list and 'joke' in noun_list:
+            return 'tell_joke'
+        if 'search' in verb_list and 'wikipedia' in noun_list:
+            return 'search_wikipedia'
+        if 'search' in verb_list and 'google' in noun_list:
+            return 'search_google'
+        if 'read' in verb_list and 'news' in noun_list:
+            return 'search_news'
+        return None
 
-        elif re.search(r'\bdelete notes?\b', command):
-            self.automation.delete_notes()
-            self.save_response(command, 'Notes deleted.')  
+    # Perform action based on matched intent
+    intent = match_intent(verbs, nouns)
 
-        elif re.search(r'\bcheck notes?\b', command):
-            self.automation.get_notes()
-            self.save_response(command, 'Checked notes.')  
+    if intent == 'take_note':
+        self.speak.say('What would you like me to note down?')
+        note = self.listen()
+        if note:
+            self.automation.take_notes(note)
+            self.save_response(note, 'Note added.')
 
-        elif re.search(r'\bscreenshot\b', command):
-            self.automation.save_screenshot()
-            self.save_response(command, 'Screenshot taken.')  
+    elif intent == 'delete_note':
+        self.automation.delete_notes()
+        self.save_response(command, 'Notes deleted.')
 
-        elif re.search(r'\blocation\b', command):
-            self.search.get_location()
-            self.save_response(command, 'Location retrieved.')  
+    elif intent == 'get_location':
+        self.search.get_location()
+        self.save_response(command, 'Location retrieved.')
 
-        elif re.search(r'\bweather\b', command):
-            self.search.search_weather()
-            self.save_response(command, 'Weather searched.')  
+    elif intent == 'take_screenshot':
+        self.automation.save_screenshot()
+        self.save_response(command, 'Screenshot taken.')
 
-        elif re.search(r'\bnews\b', command):
-            self.search.search_news()
+    elif intent == 'search_weather':
+        self.speak.say('Which city or location?')
+        city = self.listen()
+        if city:
+            self.search.search_weather(city)
+            self.save_response(command, 'Weather searched.')
+
+    elif intent == 'tell_joke':
+        self.tell_jokes()
+        self.save_response(command, 'Joke told.')
+
+    elif intent == 'search_wikipedia':
+        search_match = re.search(r'wikipedia\s(.+)', command)
+        if search_match:
+            query = search_match.group(1)
+            self.search.search_wikipedia(query)
+            self.save_response(command, 'Wikipedia searched.')
+
+    elif intent == 'search_google':
+        search_match = re.search(r'google\s(.+)', command)
+        if search_match:
+            query = search_match.group(1)
+            self.search.search_google(query)
+            self.save_response(command, 'Google search initiated.')
+
+    elif intent == 'search_news':
+        self.speak.say('Which topic or region do you want news for?')
+        news_topic = self.listen()
+        if news_topic:
+            self.search.search_news(news_topic)
             self.save_response(command, 'News searched.')
 
-        elif re.search(r'\bjoke(.+)\b', command):
-            self.tell_jokes()
-            self.save_response(command, 'Joke told.')  
-
-        elif re.search(r'\bopen\b', command):
-            browser_match = re.search(r'open\s(\w+)', command)
-            if browser_match:
-                site = browser_match.group(1)
-                self.search.open_browser(site)
-                self.save_response(command, 'Browser opened.')  
-
-        elif re.search(r'\bwikipedia\b|\bwhat is\b|\bwikipedia of\b', command):
-            search_match = re.search(r'wikipedia\s(.+)', command)
-            if search_match:
-                query = search_match.group(1)
-                self.search.search_wikipedia(query)
-                self.save_response(command, 'Wikipedia searched.')  
-
-        elif re.search(r'\bgoogle\b', command):
-            search_match = re.search(r'google\s(.+)', command)
-            if search_match:
-                query = search_match.group(1)
-                self.search.search_google(query)
-                self.save_response(command, 'Google searched.')  
-
-        elif re.search(r'\bhi\b|\bhey\b|\bhello\b', command):
-            self.speak.say('Hello sir!')
-            self.save_response(command, 'Greeted user.')  
-
-        elif re.search(r'\breminder\b|\bremind me\b', command):
-            self.speak.say('What would you like to be reminded about?')
-            reminder = self.listen()
-            if reminder:
-                self.automation.set_reminder(reminder)
-                self.save_response(command, 'Reminder set.') 
+    else:
+        # If no specific intent is matched, try to use similarity scores or respond that it couldn't understand
+        similar_command = self.find_similar_command(command, doc)
+        if similar_command:
+            self.process_command(similar_command)  # Try processing a similar command
         else:
-            self.speak.say('Sorry, I didn’t understand that command.')
+            self.speak.say("I'm sorry, I didn't understand that.")
             self.save_response(command, 'Command not understood.')
-            
+
+
     def run(self):
         self.greet()
 
