@@ -118,6 +118,95 @@ class Task:
         except Exception as e:
             logging.error(f'Error deleting notes: {e}')
             self.speaker.say('Sorry, I couldn\'t delete the notes.')
+            
+    def open_application(self, app_name):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.startfile(app_name)
+            elif os.name == 'posix':  # For macOS/Linux
+                subprocess.call(["open", app_name])
+            print(f"Application {app_name} opened.")
+        except Exception as e:
+            print(f"Error opening application: {e}")
+    
+    def close_application(self, process_name):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.system(f"taskkill /f /im {process_name}")
+            elif os.name == 'posix':  # For macOS/Linux
+                os.system(f"pkill {process_name}")
+            print(f"Application {process_name} closed.")
+        except Exception as e:
+            print(f"Error closing application: {e}")
+            
+    def set_volume(self, volume_level):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.system(f"nircmd.exe setsysvolume {volume_level}")
+            elif os.name == 'posix':  # For macOS/Linux
+                os.system(f"osascript -e 'set volume output volume {volume_level}'")
+            print(f"Volume set to {volume_level}.")
+        except Exception as e:
+            print(f"Error setting volume: {e}")
+    
+    def manage_files(self, action, file_path, new_file_path=None):
+        try:
+            if action == "create":
+                with open(file_path, "w") as f:
+                    f.write("")
+                print(f"File {file_path} created.")
+            elif action == "delete":
+                os.remove(file_path)
+                print(f"File {file_path} deleted.")
+            elif action == "rename" and new_file_path:
+                os.rename(file_path, new_file_path)
+                print(f"File renamed from {file_path} to {new_file_path}.")
+        except Exception as e:
+            print(f"Error in file management: {e}")
+    
+    def system_control(self, action):
+        try:
+            if action == "shutdown":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /s /t 1")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("sudo shutdown -h now")
+            elif action == "restart":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /r /t 1")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("sudo reboot")
+            elif action == "logoff":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /l")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("logout")
+            print(f"System {action} initiated.")
+        except Exception as e:
+            print(f"Error in system control: {e}")
+
+    
+    def web_scrape(self, url, element):
+        try:
+            
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            result = soup.find_all(element)
+            print(f"Extracted data: {result}")
+        except Exception as e:
+            print(f"Error in web scraping: {e}")
+            
+    def copy_to_clipboard(self, text):
+        pyperclip.copy(text)
+        print("Text copied to clipboard.")
+    
+    def paste_from_clipboard(self):
+        text = pyperclip.paste()
+        print(f"Text pasted from clipboard: {text}")
+        return text
+    
+
+    
 
 
 class Search:
