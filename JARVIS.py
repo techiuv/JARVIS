@@ -16,6 +16,7 @@ import schedule
 import geocoder
 import spacy
 import math
+import subprocess
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -240,6 +241,18 @@ class Task:
             return result
         except Exception as e:
             return f"Error calculating equation: {str(e)}"
+    
+    def close_browser(self):
+        try:
+            if os.name == 'nt':  # Windows OS
+                subprocess.call(["taskkill", "/IM", "chrome.exe", "/F"])  # Closes Google Chrome
+                subprocess.call(["taskkill", "/IM", "firefox.exe", "/F"])  # Closes Firefox
+                subprocess.call(["taskkill", "/IM", "msedge.exe", "/F"])  # Closes Microsoft Edge
+                return "Browser closed successfully."
+            else:
+                return "Unsupported operating system."
+        except Exception as e:
+            return f"{str(e)}"
     
 
 
@@ -604,6 +617,11 @@ class Jarvis:
         if equation:            
             result = task_instance.calculate_equation(equation)
             return f"The result of {equation} is {result}."
+    
+    elif any(verb in verbs for verb in ["close", "shutdown"]) and "browser" in objects:
+        result = task_instance.close_browser()
+        return result
+
 
 
 
