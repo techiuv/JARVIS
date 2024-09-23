@@ -206,6 +206,18 @@ class Task:
         return text
     
 
+    def set_reminder(self, message, time_in_minutes):
+        reminder_time = datetime.now() + timedelta(minutes=time_in_minutes)
+        self.reminders[reminder_time] = message
+        print(f"Reminder set for {time_in_minutes} minutes: {message}")
+    
+    # Check for reminders and notify (new)
+    def check_reminders(self):
+        now = datetime.now()
+        for reminder_time, message in list(self.reminders.items()):
+            if now >= reminder_time:
+                print(f"Reminder: {message}")
+                del self.reminders[reminder_time]
     
 
 
@@ -414,9 +426,10 @@ class Jarvis:
     doc = self.nlp(command)
     
     # Extract entities, verbs, nouns, and subjects
+    verbs = [token.lemma_ for token in doc if token.pos_ == "VERB"]
+    nouns = [token.text for token in doc if token.pos_ == "NOUN"]
     entities = [(ent.text, ent.label_) for ent in doc.ents]
-    verbs = [token.lemma_ for token in doc if token.pos_ == 'VERB']
-    nouns = [token.text for token in doc if token.pos_ == 'NOUN']
+    
     
     print(f"Extracted Entities: {entities}")
     print(f"Extracted Verbs: {verbs}")
@@ -502,6 +515,68 @@ class Jarvis:
         if news_topic:
             self.search.search_news(news_topic)
             self.save_response(command, 'News searched.')
+    elif any(verb in verbs for verb in ["shutdown", "restart", "logoff"]):
+        # System control (shutdown, restart, log off)
+        self.task.system_control(verbs[0])
+        return f"System {verbs[0]} initiated."
+
+    elif any(verb in verbs for verb in ["scrape", "extract"]):
+        # Web scraping
+        url = next((ent for ent, label in entities if label == "URL"), None)
+        element = None
+        for noun in nouns:
+            if noun in ["div", "span", "p", "h1", "h2"]:
+                element = noun
+        if url and element:
+            self.task.web_scrape(url, element)
+            return f"Scraping {element} elements from {url}."
+            
+    elif any(verb in verbs for verb in ["copy", "paste"]):
+        # Clipboard management
+        if "clipboard" in nouns:
+            if "copy" in verbs:
+                text = command.split("copy ")[-1]
+                task_instance.copy_to_clipboard(text)
+                return "Text copied to clipboard."
+            elif "paste" in verbs:
+                return task_instance.paste_from_clipboard()
+                
+    elif any(verb in verbs for verb in ["create", "delete", "rename"]):
+        # File management
+        if "file" in nouns:
+            action = verbs[0]
+            file_name = next((ent for ent, label in entities if label == "ORG"), None)
+            if action == "create":
+                task_instance.manage_files("create", file_name)
+                return f"File '{file_name}' created."
+            elif action == "delete":
+                task_instance.manage_files("delete", file_name)
+                return f"File '{file_name}' deleted."
+            elif action == "rename":
+                new_file_name = command.split(" to ")[-1].strip()
+                task_instance.manage_files("rename", file_name, new_file_name)
+                return f"File renamed to '{new_file_name}'."
+    elif any(verb in verbs for verb in ["set", "adjust", "change"]):
+        # System control actions
+        if "volume" in nouns:
+            for ent, label in entities:
+                if label == "PERCENT":
+                    volume_level = int(ent.strip('%'))  # Get the volume level from the percentage entity
+                    self.task.set_volume(volume_level)
+                    return f"Setting volume to {volume_level}%."
+                    
+        elif "reminder" in nouns:
+            time_in_minutes = None
+            message = None
+            for ent, label in entities:
+                if label == "TIME":
+                    time_in_minutes = int(ent.split()[0])  # Simple extraction of time
+                else:
+                    message = command.replace("set reminder", "").strip()
+            if time_in_minutes and message:
+                task_instance.set_reminder(message, time_in_minutes)
+                return f"Reminder set: '{message}' in {time_in_minutes} minutes."
+
 
     else:
         # If no specific intent is matched, try to use similarity scores or respond that it couldn't understand
