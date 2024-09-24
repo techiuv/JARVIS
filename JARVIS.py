@@ -14,8 +14,11 @@ import pyjokes
 import logging
 import schedule
 import geocoder
+import spacy
+import math
+import subprocess
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Speak:
@@ -118,6 +121,144 @@ class Task:
             logging.error(f'Error deleting notes: {e}')
             self.speaker.say('Sorry, I couldn\'t delete the notes.')
 
+    def open_application(self, app_name):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.startfile(app_name)
+            elif os.name == 'posix':  # For macOS/Linux
+                subprocess.call(["open", app_name])
+            print(f"Application {app_name} opened.")
+        except Exception as e:
+            print(f"Error opening application: {e}")
+
+    def close_application(self, process_name):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.system(f"taskkill /f /im {process_name}")
+            elif os.name == 'posix':  # For macOS/Linux
+                os.system(f"pkill {process_name}")
+            print(f"Application {process_name} closed.")
+        except Exception as e:
+            print(f"Error closing application: {e}")
+
+    def set_volume(self, volume_level):
+        try:
+            if os.name == 'nt':  # For Windows
+                os.system(f"nircmd.exe setsysvolume {volume_level}")
+            elif os.name == 'posix':  # For macOS/Linux
+                os.system(f"osascript -e 'set volume output volume {volume_level}'")
+            print(f"Volume set to {volume_level}.")
+        except Exception as e:
+            print(f"Error setting volume: {e}")
+
+    def manage_files(self, action, file_path, new_file_path=None):
+        try:
+            if action == "create":
+                with open(file_path, "w") as f:
+                    f.write("")
+                print(f"File {file_path} created.")
+            elif action == "delete":
+                os.remove(file_path)
+                print(f"File {file_path} deleted.")
+            elif action == "rename" and new_file_path:
+                os.rename(file_path, new_file_path)
+                print(f"File renamed from {file_path} to {new_file_path}.")
+        except Exception as e:
+            print(f"Error in file management: {e}")
+
+    def system_control(self, action):
+        try:
+            if action == "shutdown":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /s /t 1")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("sudo shutdown -h now")
+            elif action == "restart":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /r /t 1")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("sudo reboot")
+            elif action == "logoff":
+                if os.name == 'nt':  # For Windows
+                    os.system("shutdown /l")
+                elif os.name == 'posix':  # For macOS/Linux
+                    os.system("logout")
+            print(f"System {action} initiated.")
+        except Exception as e:
+            print(f"Error in system control: {e}")
+
+    def web_scrape(self, url, element):
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            result = soup.find_all(element)
+            print(f"Extracted data: {result}")
+        except Exception as e:
+            print(f"Error in web scraping: {e}")
+
+    def copy_to_clipboard(self, text):
+        try:
+            pyperclip.copy(text)
+            print("Text copied to clipboard.")
+        except Exception as e:
+            print(f"Error copying to clipboard: {e}")
+
+    def paste_from_clipboard(self):
+        try:
+            text = pyperclip.paste()
+            print(f"Text pasted from clipboard: {text}")
+            return text
+        except Exception as e:
+            print(f"Error pasting from clipboard: {e}")
+
+    def set_reminder(self, message, time_in_minutes):
+        try:
+            reminder_time = datetime.now() + timedelta(minutes=time_in_minutes)
+            self.reminders[reminder_time] = message
+            print(f"Reminder set for {time_in_minutes} minutes: {message}")
+        except Exception as e:
+            print(f"Error setting reminder: {e}")
+
+    def check_reminders(self):
+        try:
+            now = datetime.now()
+            for reminder_time, message in list(self.reminders.items()):
+                if now >= reminder_time:
+                    print(f"Reminder: {message}")
+                    del self.reminders[reminder_time]
+        except Exception as e:
+            print(f"Error checking reminders: {e}")
+
+    def calculate_equation(self, equation: str):
+        try:
+            allowed_functions = {
+                'sin': math.sin,
+                'cos': math.cos,
+                'tan': math.tan,
+                'sqrt': math.sqrt,
+                'log': math.log,
+                'pow': math.pow,
+                'exp': math.exp,
+                'pi': math.pi,
+                'e': math.e
+            }
+            result = eval(equation, {"__builtins__": None}, allowed_functions)
+            return result
+        except Exception as e:
+            return f"Error calculating equation: {str(e)}"
+
+    def close_browser(self):
+        try:
+            if os.name == 'nt':  # Windows OS
+                subprocess.call(["taskkill", "/IM", "chrome.exe", "/F"])
+                subprocess.call(["taskkill", "/IM", "firefox.exe", "/F"])
+                subprocess.call(["taskkill", "/IM", "msedge.exe", "/F"])
+                return "Browser closed successfully."
+            else:
+                print("Unsupported operating system.")
+        except Exception as e:
+            return f"{str(e)}"
+
 
 class Search:
     def __init__(self, speaker):
@@ -138,7 +279,7 @@ class Search:
                 self.wiki_cache[query] = result
 
             print('According to Wikipedia, ' + result)
-            self.speaker.say('Sir! According to Wikipedia, ' + result)
+            self.speaker.say('According to Wikipedia, ' + result)
         except wikipedia.exceptions.DisambiguationError as e:
             self.speaker.say('The search term is too ambiguous. Please be more specific.')
             logging.error(f'DisambiguationError: {e}')
@@ -155,7 +296,6 @@ class Search:
         url = "https://www.google.com/search?q=" + query
         webbrowser.open(url)
 
-    
     def get_location(self):
         try:
             loc = geocoder.ip('me')
@@ -206,15 +346,12 @@ class Search:
                 self.speaker.say(news_info)
                 print(news_info)
             else:
-                self.speaker.say('Sorry Sir! No news found.')
+                self.speaker.say('Sorry! No news found.')
                 print('No news found.')
         except Exception as e:
             error_message = str(e)
             self.speaker.say('Sorry, I couldn\'t retrieve the news. ' + error_message)
             print('Error:', error_message)
-
-
-
 
 
 class Jarvis:
@@ -231,6 +368,7 @@ class Jarvis:
         self.reminders = []
         self.load_reminders()
         self.reminder_lock = threading.Lock()
+        self.nlp = spacy.load('en_core_web_sm')
 
     def load_reminders(self):
         if os.path.exists(self.reminders_file):
@@ -282,17 +420,14 @@ class Jarvis:
         }
 
         try:
-            # Read existing responses
             with open(self.responses_file, 'r') as file:
                 responses = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError):
             responses = []
 
-        # Append new response
         responses.append(response_data)
 
         try:
-            # Save updated responses
             with open(self.responses_file, 'w') as file:
                 json.dump(responses, file, indent=4)
         except IOError as e:
@@ -318,76 +453,94 @@ class Jarvis:
                 return None
 
     def process_command(self, command):
-        if re.search(r'\btake notes?\b', command):
+        doc = self.nlp(command)
+
+        verbs = [token.lemma_ for token in doc if token.pos_ == "VERB"]
+        nouns = [token.text for token in doc if token.pos_ == "NOUN"]
+        entities = [(ent.text, ent.label_) for ent in doc.ents]
+
+        print(f"Extracted Entities: {entities}")
+        print(f"Extracted Verbs: {verbs}")
+        print(f"Extracted Nouns: {nouns}")
+
+        def match_intent(verb_list, noun_list):
+            if 'take' in verb_list and 'note' in noun_list:
+                return 'take_note'
+            if 'delete' in verb_list and 'note' in noun_list:
+                return 'delete_note'
+            if 'get' in verb_list and 'location' in noun_list:
+                return 'get_location'
+            if 'take' in verb_list and 'screenshot' in noun_list:
+                return 'take_screenshot'
+            if 'search' in verb_list and 'weather' in noun_list:
+                return 'search_weather'
+            if 'tell' in verb_list and 'joke' in noun_list:
+                return 'tell_joke'
+            if 'search' in verb_list and 'wikipedia' in noun_list:
+                return 'search_wikipedia'
+            if 'search' in verb_list and 'google' in noun_list:
+                return 'search_google'
+            if 'read' in verb_list and 'news' in noun_list:
+                return 'search_news'
+            return None
+
+        intent = match_intent(verbs, nouns)
+
+        if intent == 'take_note':
             self.speak.say('What would you like me to note down?')
             note = self.listen()
             if note:
                 self.automation.take_notes(note)
-                self.save_response(note, 'Note added.')  
+                self.save_response(note, 'Note added.')
 
-        elif re.search(r'\bdelete notes?\b', command):
+        elif intent == 'delete_note':
             self.automation.delete_notes()
-            self.save_response(command, 'Notes deleted.')  
+            self.save_response(command, 'Notes deleted.')
 
-        elif re.search(r'\bcheck notes?\b', command):
-            self.automation.get_notes()
-            self.save_response(command, 'Checked notes.')  
-
-        elif re.search(r'\bscreenshot\b', command):
-            self.automation.save_screenshot()
-            self.save_response(command, 'Screenshot taken.')  
-
-        elif re.search(r'\blocation\b', command):
+        elif intent == 'get_location':
             self.search.get_location()
-            self.save_response(command, 'Location retrieved.')  
+            self.save_response(command, 'Location retrieved.')
 
-        elif re.search(r'\bweather\b', command):
-            self.search.search_weather()
-            self.save_response(command, 'Weather searched.')  
+        elif intent == 'take_screenshot':
+            self.automation.save_screenshot()
+            self.save_response(command, 'Screenshot taken.')
 
-        elif re.search(r'\bnews\b', command):
-            self.search.search_news()
-            self.save_response(command, 'News searched.')
+        elif intent == 'search_weather':
+            self.speak.say('Which city or location?')
+            city = self.listen()
+            if city:
+                self.search.search_weather(city)
+                self.save_response(command, 'Weather searched.')
 
-        elif re.search(r'\bjoke(.+)\b', command):
+        elif intent == 'tell_joke':
             self.tell_jokes()
-            self.save_response(command, 'Joke told.')  
+            self.save_response(command, 'Joke told.')
 
-        elif re.search(r'\bopen\b', command):
-            browser_match = re.search(r'open\s(\w+)', command)
-            if browser_match:
-                site = browser_match.group(1)
-                self.search.open_browser(site)
-                self.save_response(command, 'Browser opened.')  
-
-        elif re.search(r'\bwikipedia\b|\bwhat is\b|\bwikipedia of\b', command):
+        elif intent == 'search_wikipedia':
             search_match = re.search(r'wikipedia\s(.+)', command)
             if search_match:
                 query = search_match.group(1)
                 self.search.search_wikipedia(query)
-                self.save_response(command, 'Wikipedia searched.')  
+                self.save_response(command, 'Wikipedia searched.')
 
-        elif re.search(r'\bgoogle\b', command):
+        elif intent == 'search_google':
             search_match = re.search(r'google\s(.+)', command)
             if search_match:
                 query = search_match.group(1)
                 self.search.search_google(query)
-                self.save_response(command, 'Google searched.')  
+                self.save_response(command, 'Google search initiated.')
 
-        elif re.search(r'\bhi\b|\bhey\b|\bhello\b', command):
-            self.speak.say('Hello sir!')
-            self.save_response(command, 'Greeted user.')  
+        elif intent == 'search_news':
+            self.speak.say('Which topic or region do you want news for?')
+            news_topic = self.listen()
+            if news_topic:
+                self.search.search_news(news_topic)
+                self.save_response(command, 'News searched.')
 
-        elif re.search(r'\breminder\b|\bremind me\b', command):
-            self.speak.say('What would you like to be reminded about?')
-            reminder = self.listen()
-            if reminder:
-                self.automation.set_reminder(reminder)
-                self.save_response(command, 'Reminder set.') 
         else:
-            self.speak.say('Sorry, I didn’t understand that command.')
+            self.speak.say("I'm sorry, I didn't understand that.")
             self.save_response(command, 'Command not understood.')
-            
+
     def run(self):
         self.greet()
 
